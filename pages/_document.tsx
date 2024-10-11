@@ -4,7 +4,8 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head />
-      <body className="antialiased">
+      <title>صراحة</title>
+      <body className="antialiased" dir="rtl">
         <Main />
         <NextScript />
       </body>

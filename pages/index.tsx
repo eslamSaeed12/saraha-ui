@@ -1,114 +1,177 @@
+import { useParams, useSearchParams } from "next/navigation";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import Image from "next/image";
-import localFont from "next/font/local";
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
+import logo from "./main.jpg";
+import axios, { AxiosError } from "axios";
+import { DotLoader } from "react-spinners";
+interface ILocation {
+  lat: number | null;
+  lon: number | null;
+}
+const uri: string = process.env.NEXT_PUBLIC_API as any;
 
 export default function Home() {
-  return (
-    <div
-      className={`${geistSans.variable} ${geistMono.variable} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              pages/index.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [location, setLocation] = useState<ILocation>({ lat: null, lon: null });
+  const params = useSearchParams();
+  const [message, setMessage] = useState("");
+  const [loader, setLoader] = useState(false);
+  const [messageError, setMessageError] = useState("");
+  const [alert, setAlert] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const onFormSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const data = {
+        target: params.get("target"),
+        body: message,
+        lat: location.lat,
+        lon: location.lon,
+      };
+      try {
+        setLoader(true);
+        const res = await axios.post(`${uri}/api/messages`, data);
+        setMessage("");
+        setAlert(true)
+        setTimeout(()=>{
+            setAlert(false);
+        },3000)
+      } catch (err) {
+        if (err instanceof AxiosError) {
+          const res = err?.response?.data;
+          if (res && err.status == 400) {
+            setMessageError(res?.message[0]);
+          } else {
+            setMessageError("حدث خطأ ما");
+          }
+        } else {
+          setMessageError("حدث خطأ ما");
+        }
+      } finally {
+        setLoader(false);
+      }
+    },
+    [message, location, params]
+  );
+  useEffect(() => {
+    if (window?.navigator?.geolocation) {
+      window.navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          });
+        },
+        (err) => {
+          console.log(err);
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  }, []);
+  return (
+    <div>
+      <header>
+        <div className="container">
+          <nav>
+            <ul>
+              <li>
+                <a href="#">العربية</a>
+              </li>
+              <li>
+                <a href="#">اتصل بنا</a>
+              </li>
+              <li>
+                <a href="#">تسجيل الدخول عن طريق الفيسبوك</a>
+              </li>
+              <li>
+                <a href="#">تسجيل</a>
+              </li>
+              <li>
+                <a href="#">دخول</a>
+              </li>
+            </ul>
+          </nav>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      </header>
+
+      <div className="container main">
+        <div className="message-box">
+          <div className="flex flex-row justify-center">
+            <Image
+              src={logo}
+              alt="sarah-logo"
+              style={{
+                maxWidth: 100,
+                borderRadius: "100%",
+                border: "1px solid rgba(15,186,178,.1)",
+              }}
+            />
+          </div>
+          <h2 className="font-bold text-lg capitalize mt-4">
+            {params.get("target")}
+          </h2>
+          <p>اجعل رسالتك بناءة :)</p>
+          <form onSubmit={(e) => onFormSubmit(e)}>
+            <textarea
+              placeholder="اكتب رسالتك هنا"
+              value={message}
+              required={true}
+              minLength={5}
+              maxLength={255}
+              onChange={(t) => {
+                setMessageError("");
+                setAlert(false)
+                setMessage(t.target.value);
+              }}
+            ></textarea>
+            <label className="text-red-700 block">{messageError}</label>
+            <button type="submit">
+              {loader ? <DotLoader color="white" size={15} /> : "ارسال"}
+            </button>
+          </form>
+        </div>
+      </div>
+      {alert ? (
+        <div
+          className="absolute bottom-0 left-0 w-full"
+          style={{ height: 100 }}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+          <div
+            className="bg-green-500 text-white px-4 py-3 rounded absolute right-10 bottom-10"
+            role="alert"
+            style={{ width: 300 }}
+          >
+            <strong className="font-bold ml-2">نجاح!</strong>
+            <span className="block sm:inline">تم إرسال الرسالة بنجاح!</span>
+            <span className="absolute top-0 bottom-0 left-0 z-10 px-4 py-3 cursor-pointer">
+              x
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      <footer>
+        <div className="container">
+          <div className="footer-row">
+            <div className="footer-column">
+              <p>
+                1. يمكنك إنشاء حساب صراحة خاص بك بكل سهولة من{" "}
+                <a href="#">هنا</a>
+              </p>
+              <p>
+                2. يمكنك نشر الحساب الخاص بك على Twitter أو Facebook أو Skype أو
+                أي مكان تريده
+              </p>
+              <p>3. يمكنك قراءة ما كتبه الناس عنك</p>
+              <p>4. من المستحسن أن تنشر الرسائل المفضلة لديك</p>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>© جميع الحقوق محفوظة - موقع صراحة © 2024</p>
+            <a href="#">شروط الاستخدام والخصوصية</a> |
+            <a href="#">انضم للمجموعة</a>
+          </div>
+        </div>
       </footer>
     </div>
   );
