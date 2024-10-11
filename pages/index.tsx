@@ -22,10 +22,10 @@ export default function Home() {
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const data = {
-        target: params.get("target"),
+        target: params.get("target") ?? "unknown",
         body: message,
-        lat: location.lat,
-        lon: location.lon,
+        lat: location?.lat ?? 0.0,
+        lon: location?.lon ?? 0.0,
       };
       try {
         setLoader(true);
